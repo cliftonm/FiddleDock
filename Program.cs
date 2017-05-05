@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.IO;
+
+using Clifton.Core.ExtensionMethods;
 
 namespace FiddleDock
 {
@@ -10,6 +9,34 @@ namespace FiddleDock
 	{
 		static void Main(string[] args)
 		{
+			WebServer ws = new WebServer();
+			ws.Logger += Logger;
+			InitializeRoutes(ws);
+			ws.StartWebServer();
+			Console.WriteLine("Web server ready.");
+			Console.ReadLine();
+		}
+
+		private static void Logger(object sender, LogEventArgs e)
+		{
+			Console.WriteLine(e.Message);
+		}
+
+		private static string GetPath()
+		{
+			return @"c:\projects\FiddleDock\Website";
+		}
+
+		private static void InitializeRoutes(WebServer ws)
+		{
+			ws.AddRoute("GET", "/", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "/index", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "/index.html", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "*.js", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "text/javascript" });
+			ws.AddRoute("GET", "*.css", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "text/css" });
+			ws.AddRoute("GET", "*.jpg", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/jpg" });
+			ws.AddRoute("GET", "*.png", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/png" });
+			ws.AddRoute("GET", "*.bmp", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/bmp" });
 		}
 	}
 }
