@@ -4,17 +4,35 @@
 <head>
     <meta charset="utf-8" />
     <title>FiddleDock</title>
-    <script type="text/javascript" src="js/ace/ace.js" charset="utf-8"></script>
+    <link type="text/css" rel="stylesheet" href="/css/bootstrap.min.css" />
+    <link type="text/css" rel="stylesheet" href="/css/bootstrap-custom.css" />
+    <link type="text/css" rel="stylesheet" href="/css/fiddledock.css" />
+    <script type="text/javascript" src="/js/ace/ace.js" charset="utf-8"></script>
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <script type="text/javascript" src="/js/bootstrap.min.js"></script>
 </head>
 <body>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1"/>
-            <div class="col-xs-10 col-sm-10 col-md-10 col-lg-10">
-                <div id="receptorEditor" style="width:100%; height:100%">
-                </div>
+    <div class="container-fluid" style="height:90vh">
+        <div class="row top-margin-20" style="height:45%">
+            <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1"></div>
+            <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8" style="height:100%">
+                <div class="bottom-margin-10" id="receptorEditor" style="width:100%; height:100%"></div>
             </div>
-            <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1" />
+            <div class="col-xs-3 col-sm-3 col-md-3 col-lg-3"></div>
+        </div>
+
+        <div class="row" style="padding-top:10px">
+            <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1"></div>
+            <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8">
+                <span style="color:black; font-family:Tahoma; font-size:1em; vertical-align:bottom;">Output:</span>
+            </div>
+         </div>
+
+        <div class="row" style="height:45%">
+            <div class="col-xs-1 col-sm-1 col-md-1 col-lg-1"></div>
+            <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8" style="height:100%">
+                <div id="output" style="width:100%; border:1px solid black; height:100%"></div>
+            </div>
         </div>
     </div>
 </body>
@@ -24,7 +42,8 @@
 
     $(document).ready(function () {
         receptorEditor = ace.edit("receptorEditor");
-        receptorEditor.setTheme("ace/theme/monokai");
+        receptorEditor.setTheme("ace/theme/twilight");
         receptorEditor.getSession().setMode("ace/mode/python");
+        receptorEditor.focus()
     });
 </script>

@@ -113,16 +113,34 @@ namespace FiddleDock
 
 			if (numRoutes == 0)
 			{
+				Console.WriteLine("Route not found!");
 				Respond(context, "<p>Route not found!</p>", "text/html");
 			}
 			else if (numRoutes > 1)
 			{
+				Console.WriteLine("Multiple handlers match the given route!");
 				Respond(context, "<p>Multiple handlers match the given route!</p>", "text/html");
 			}
 			else
 			{
 				Response response = routes.First().Value(context);
-				Respond(context, response.Data, response.ContentType);
+
+				try
+				{
+					if (response.Data != null)
+					{
+						Respond(context, response.Data, response.ContentType);
+					}
+					else
+					{
+						Respond(context, response.ByteData, response.ContentType);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					Respond(context, "error", "text/html");
+				}
 			}
 		}
 
@@ -135,5 +153,12 @@ namespace FiddleDock
 			context.Response.OutputStream.Write(utf8data, 0, utf8data.Length);
 		}
 
+		protected void Respond(HttpListenerContext context, byte[] data, string contentType)
+		{
+			context.Response.ContentType = contentType;
+			// context.Response.ContentEncoding = Encoding.
+			context.Response.ContentLength64 = data.Length;
+			context.Response.OutputStream.Write(data, 0, data.Length);
+		}
 	}
 }

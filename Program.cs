@@ -32,11 +32,12 @@ namespace FiddleDock
 			ws.AddRoute("GET", "/", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
 			ws.AddRoute("GET", "/index", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
 			ws.AddRoute("GET", "/index.html", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
-			ws.AddRoute("GET", "*.js", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "text/javascript" });
-			ws.AddRoute("GET", "*.css", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "text/css" });
-			ws.AddRoute("GET", "*.jpg", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/jpg" });
-			ws.AddRoute("GET", "*.png", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/png" });
-			ws.AddRoute("GET", "*.bmp", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters())), ContentType = "image/bmp" });
+			ws.AddRoute("GET", "*.js", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/javascript" });
+			ws.AddRoute("GET", "*.css", (context) => new Response() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/css" });
+			ws.AddRoute("GET", "*.jpg", (context) => new Response() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/jpg" });
+			ws.AddRoute("GET", "*.png", (context) => new Response() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/png" });
+			ws.AddRoute("GET", "*.bmp", (context) => new Response() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/bmp" });
+			ws.AddRoute("GET", "*.ico", (context) => new Response() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/x-icon" });
 		}
 	}
 }
