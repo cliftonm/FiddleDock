@@ -18,7 +18,23 @@
             <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8" style="height:100%">
                 <div class="bottom-margin-10" id="receptorEditor" style="width:100%; height:100%"></div>
             </div>
-            <div class="col-xs-3 col-sm-3 col-md-3 col-lg-3"></div>
+            <div class="col-xs-3 col-sm-3 col-md-3 col-lg-3">
+                <div>
+                    <button id="run">Run</button>
+                </div>
+                <div class="top-margin-10">
+                    Select Instance:
+                    <select id="instanceList">
+                        <option>1</option>
+                    </select>
+                </div>
+                <div class="top-margin-10">
+                    <button id="deleteInstance">Delete Instance</button>
+                </div>
+                <div class="top-margin-10">
+                    <button id="createInstance">Create New Instance</button>
+                </div>
+            </div>
         </div>
 
         <div class="row" style="padding-top:10px">
@@ -44,6 +60,33 @@
         receptorEditor = ace.edit("receptorEditor");
         receptorEditor.setTheme("ace/theme/twilight");
         receptorEditor.getSession().setMode("ace/mode/python");
-        receptorEditor.focus()
+        receptorEditor.focus();
+
+        $("#run").on("click", runCode);
+        $("#createInstance").on("click", createInstance);
+        $("#deleteInstance").on("click", deleteInstance);
+        $("#instanceList").on("change", selectInstance);
     });
+
+    function runCode() {
+    }
+
+    function createInstance() {
+    }
+
+    function selectInstance() {
+    }
+
+    function deleteInstance() {
+        if (moreThanOneInstance()) {
+
+        }
+        else {
+            alert("At least one instance must exist.");
+        }
+    }
+
+    function moreThanOneInstance() {
+        return $("#instanceList option").size() > 1
+    }
 </script>
