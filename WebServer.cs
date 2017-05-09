@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading;
 
 using Clifton.Core.ExtensionMethods;
+
+using FiddleDock.RouteHandlers;
 
 // http://stackoverflow.com/questions/38382971/predefined-type-system-valuetuple%C2%B42%C2%B4-is-not-defined-or-imported
 
@@ -107,6 +109,7 @@ namespace FiddleDock
 
 			string verb = context.Request.HttpMethod;
 			string path = context.Request.Url.LocalPath;
+			string requestData = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
 
 			var routes = routeHandlers.Where(kvp => kvp.Key.IsMatch(verb, path));
 			int numRoutes = routes.Count();
@@ -123,18 +126,12 @@ namespace FiddleDock
 			}
 			else
 			{
-				Response response = routes.First().Value(context);
 
 				try
 				{
-					if (response.Data != null)
-					{
-						Respond(context, response.Data, response.ContentType);
-					}
-					else
-					{
-						Respond(context, response.ByteData, response.ContentType);
-					}
+					Response response = routes.First().Value(context);
+					response.Execute(requestData);
+					Respond(context, response);
 				}
 				catch (Exception ex)
 				{
@@ -144,6 +141,14 @@ namespace FiddleDock
 			}
 		}
 
+		protected void Respond(HttpListenerContext context, Response response)
+		{
+			context.Response.ContentType = response.ContentType;
+			var data = response.GetResponseData(context);
+			context.Response.ContentLength64 = data.Length;
+			context.Response.OutputStream.Write(data, 0, data.Length);
+		}
+
 		protected void Respond(HttpListenerContext context, string msg, string contentType)
 		{
 			byte[] utf8data = Encoding.UTF8.GetBytes(msg);
@@ -151,14 +156,6 @@ namespace FiddleDock
 			context.Response.ContentEncoding = Encoding.UTF8;
 			context.Response.ContentLength64 = utf8data.Length;
 			context.Response.OutputStream.Write(utf8data, 0, utf8data.Length);
-		}
-
-		protected void Respond(HttpListenerContext context, byte[] data, string contentType)
-		{
-			context.Response.ContentType = contentType;
-			// context.Response.ContentEncoding = Encoding.
-			context.Response.ContentLength64 = data.Length;
-			context.Response.OutputStream.Write(data, 0, data.Length);
 		}
 	}
 }
