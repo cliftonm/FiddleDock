@@ -72,7 +72,7 @@
 
     function runCodeOnDocker() {
         var code = editor.getValue();
-        postJson("/run", { "code": btoa(code) }, runResponse, ajaxError)
+        postJson("/runOnDocker", { "code": btoa(code) }, runResponse, ajaxError)
     }
 
     function runCodeOnHost() {

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Diagnostics;
 
+using System.Collections.Generic;
+using System.Linq;
+
 namespace FiddleDock
 {
 	public static class Runner
@@ -15,6 +18,11 @@ namespace FiddleDock
 			p.StartInfo.FileName = processName;
 			p.StartInfo.Arguments = arguments;
 			p.StartInfo.CreateNoWindow = true;
+
+			p.StartInfo.EnvironmentVariables["DOCKER_CERT_PATH"] = @"c:\users\Marc\.docker\machine\machines\default";
+			p.StartInfo.EnvironmentVariables["DOCKER_HOST"] = "tcp://192.168.99.100:2376";
+			p.StartInfo.EnvironmentVariables["DOCKER_MACHINE_NAME"] = "default";
+			p.StartInfo.EnvironmentVariables["DOCKER_TLS_VERIFY"] = "1";
 
 			p.OutputDataReceived += (sndr, args) => { if (args.Data != null) onOutput(args.Data); };
 

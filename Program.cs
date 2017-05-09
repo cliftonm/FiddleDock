@@ -43,6 +43,7 @@ namespace FiddleDock
 
 			ws.AddRoute("POST", "/run", (context) => new Run() { ContentType = "text/json" });
 			ws.AddRoute("POST", "/runOnHost", (context) => new RunOnHost() { ContentType = "text/json" });
+			ws.AddRoute("POST", "/runOnDocker", (context) => new RunOnDocker() { ContentType = "text/json" });
 		}
 	}
 }
