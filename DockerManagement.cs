@@ -92,6 +92,7 @@ namespace FiddleDock
 			int port = sessionPorts[instanceNumber];
 			ExitContainer(port);
 			sessionPorts.RemoveAt(instanceNumber);
+			globalUsedPorts.RemoveAt(globalUsedPorts.IndexOf(port));
 		}
 
 		protected int CreateContainer()
