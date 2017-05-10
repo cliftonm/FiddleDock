@@ -1,0 +1,213 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="en-us">
+<meta http-equiv="Content-Type" content="text/html; charset=windows-1252">
+<title>Create a Dockerized Python Fiddl</title>
+</head>
+
+<body>
+
+<p>Create a Dockerized Python Fiddle Website </p>
+<p>Using C#, a simple web server, and Docker, I show you how to create a 
+&quot;Fiddle&quot; website to run Python (or other script languages)</p>
+<h2>Introduction</h2>
+<p><img border="0" src="screenshot.png" width="707" height="559"></p>
+<p>First off, a disclaimer -- I am new to Docker and this probably is not the 
+easiest/best way to do this.&nbsp; There are a few ways to implement this 
+concept, and I've chosen one approach.&nbsp; A more typical approach is probably 
+to use something like Nginx and reverse proxies to implement the entire site 
+directly within a Docker container, but I chose not to do that as I don't know 
+Nginx and it would have required working entirely in the *nix world, which I 
+also didn't want to do.&nbsp; There's only so much learning curve that I can 
+take at one time!</p>
+<p>So in this implementation:</p>
+<ol>
+	<li>The website itself is implemented in C#</li>
+	<li>The Docker system runs in Windows</li>
+	<li>A Dockerized HTTP server runs in the container</li>
+	<li>The C# web server communicates with the Docker container to:<ol>
+		<li>Uploads the Python script from the browser that you want to run in 
+		the container</li>
+		<li>Executes the script</li>
+		<li>Returns the STDOUT and STDERR of the script back to the browser</li>
+	</ol>
+	</li>
+	<li>Exposes some behaviors you wouldn't actually expose on a real Fiddle 
+	website, but is useful for demonstrating some features in this article.</li>
+</ol>
+<h3>What I Learned</h3>
+<ol>
+	<li>All about the pain points of getting a Docker container up and running</li>
+	<li>Creating a simple web server in C#</li>
+	<li>Creating an HTTP server in Python</li>
+	<li>Redirecting STDOUT and STDERR</li>
+	<li>Dealing with environment variables necessary to launch a Docker 
+	container.</li>
+	<li>Basic configuration of a Docker image</li>
+	<li>Basic building of a Docker image</li>
+	<li>Nuances of Python scripts in Windows 7 and Windows 10</li>
+</ol>
+<h2>Why Use Docker?</h2>
+<p>Two main reasons, particularly when exposing something as dangerous as 
+letting a user run code on your server:</p>
+<ul>
+	<li>Security</li>
+	<li>Isolation from other users</li>
+</ul>
+<h3>Security</h3>
+<p>Docker creates an isolated container that has no access to your host 
+environment unless you explicitly create a bridge (either shared files or 
+exposed ports).&nbsp; This protects the web application from malicious attacks.&nbsp; If 
+the user decides to explore the file system, delete files or otherwise alter 
+them, they are only affecting the container, not your web server!</p>
+<p>For example, if I run a Python application using the &quot;Run on Host&quot; feature 
+that I've implemented in the web app, you'll see that I can list the contents of 
+any directory with my Python app:</p>
+<p><img border="0" src="runonhost1.png" width="481" height="372"></p>
+<p>Obviously, we don't want the user doing this.&nbsp; On the other hand, if I 
+run the exact same code using the &quot;Run on Docker&quot; feature, we can see that I'm 
+executing the Python code in a completely different OS:</p>
+<p><img border="0" src="runondocker1.png" width="479" height="371"></p>
+<p>Here the code is running in a container that the web app creates on the fly 
+from a baseline Docker image.&nbsp; Starting the container takes a few seconds, 
+but once the container is running, interacting with it is very fast.</p>
+<h3>Important Things I Ignore</h3>
+<ul>
+	<li>The number of concurrent containers - you would never deploy this as a 
+	real web application because the server could easily be overwhelmed with 
+	sessions each creating their own container.</li>
+	<li>Memory and CPU usage - there are ways in Docker to throttle memory and 
+	CPU usage so that a rogue application doesn't acquire all the resources of 
+	your server.</li>
+	<li>Allowed application execution time - this is poorly implemented in the 
+	&quot;Run on Host&quot; feature and not implemented at all in the &quot;Run on Docker&quot; 
+	feature.</li>
+	<li>As I mentioned at the beginning of the article, there are probably much 
+	better ways of doing this, and services such as Amazon EC2 Container Service 
+	should not be ignored.</li>
+	<li>Further security improvements even within the container itself -- 
+	read/write permissions, a separate user in which the process executing the 
+	Python script runs, etc.</li>
+	<li>Further restrictions to the outside world -- as you can see from my 
+	example, the code running in the container can access anything on the 
+	Internet.&nbsp; The last thing you want to discover is that someone is 
+	running a DoS attack through your Fiddle web app.</li>
+</ul>
+<h2>Getting Started with Docker</h2>
+<h3>Installing Docker</h3>
+<p>The OS's I used in the development of this demonstration app are Windows 7 
+Professional and Windows 10 Home editions.&nbsp; Neither of these OS's support
+<a href="https://en.wikipedia.org/wiki/Hyper-V">Hyper-V</a> (the ability to 
+create virtual machines on X86-64 systems running Windows), so instead, I've had 
+to install the <a href="https://www.docker.com/products/docker-toolbox">Docker 
+Toolbox</a> which uses Oracle's Virtual Box for the virtual machine.&nbsp; If 
+your OS is Hyper-V capable, then can download the
+<a href="https://www.docker.com/community-edition">Docker Community Edition</a> 
+instead.&nbsp; Just beware that there might be some minor differences with 
+regards to the contents of this article.</p>
+<h3>Using the Docker Quickstart Terminal</h3>
+<p>As noted, I installed the Docker Toolbox, which creates these shortcuts in 
+the Start menu:</p>
+<p><img border="0" src="docker1.png" width="209" height="61"></p>
+<p>When you launch the Docker Quickstart Terminal, it'll do some startup things 
+and then display the Docker ASCII art logo, from which you can check that things 
+are working by getting the version information with either <code>docker --version</code> or a 
+more detailed response with <code>docker version</code>.</p>
+<p><img border="0" src="docker2.png" width="516" height="608"></p>
+<p>There are a couple important things to note here!</p>
+<ol>
+	<li>As highlighted in the title bar, Docker is running in your Users folder.</li>
+<li>Note the IP address that the Docker machine is running on.&nbsp; We will use 
+that information later on.</li>
+</ol>
+<p>The first is very important, because Virtual Box has been set up for you to 
+share this folder between your host (Windows) OS and the Docker VM.&nbsp; You 
+can verify this with the &quot;ls&quot; command which lists the contents of the folder, 
+for example:</p>
+<p><img border="0" src="docker3.png" width="196" height="228"></p>
+<p>Docker <i>images</i> are built from specifications that you create (usually 
+in subfolders) from this directory (in my case, c:\Users\Marc).</p>
+<h3>Create Your First Image - The Basics</h3>
+<p>On your host (Windows), in your 
+<code>c:\Users\[your username]</code> folder, create a folder called &quot;test&quot; and 
+the following files (I'm using Sublime editor for these files):</p>
+<ul>
+	<li>create Dockerfile (no extension!)</li>
+</ul>
+<p>In this file, tell Docker that the image is going to use the latest 
+version of Python:</p>
+<pre>FROM python:latest
+WORKDIR /app
+ADD . /app</pre>
+<p>We also tell Docker where the files for the &quot;application&quot; for our Docker 
+image is located using the environment variable <code>WORKDIR</code> and the command <code>ADD</code>.&nbsp; 
+Read more <a href="https://docs.docker.com/engine/reference/builder/">here</a>.</p>
+<p>The first instruction <u>must be</u> FROM, as this specifies the <i>base 
+image</i>.&nbsp; Docker's
+<a href="https://docs.docker.com/glossary/?term=base image">glossary</a> of 
+&quot;base image&quot; is pretty useless: &quot;An image that has no parent is a base image&quot;, 
+and I'm not going to get into the details of images, as 1) I'm still learning 
+this stuff and couldn't explain it well enough, and 2) other people have written 
+a lot of good stuff about images and containers.&nbsp; You can read more
+<a href="https://docs.docker.com/engine/userguide/storagedriver/imagesandcontainers/">
+here</a> on the Docker site.</p>
+<ul>
+	<li>create hello.py</li>
+</ul>
+<p>In this file, create a one line &quot;hello world&quot; app:</p>
+<code>print(&quot;Hello World!&quot;)</code>
+<p>Make sure there's a carriage return at the end of that line, otherwise 
+nothing will happen (this is a Python thing.)</p>
+<p>We see that these files, in the &quot;test&quot; folder that I put them in, are visible 
+in the terminal:</p>
+<p><img border="0" src="docker4.png" width="206" height="135"></p>
+<h3>Build the Image</h3>
+<p>In the terminal, the image is built with the command <code>docker build -t test ./test</code></p>
+<p><img border="0" src="docker5.png" width="661" height="285"></p>
+<p>This tells Docker to create an image called &quot;test&quot;, and the definition of the 
+image, including the files we want the image to have, are in the <code>./test</code> folder.&nbsp; 
+The &quot;-t&quot; tells Docker to name the image, which is useful, because otherwise your 
+using a long hex image ID string instead.&nbsp; Read more about Docker build 
+options
+<a href="https://docs.docker.com/engine/reference/commandline/build/#options">
+here</a>.</p>
+<h3>Run the Image in a Container from Inside the Terminal</h3>
+<p>We can now run the image with <code>docker run test python hello.py</code></p>
+<p><img border="0" src="docker6.png" width="245" height="134"></p>
+<p>Success!&nbsp; Here we are telling Docker to run the image &quot;test&quot; and we're 
+passing in a command line that the container will execute.</p>
+<h3>List Docker Images</h3>
+<p>To see what images you've created, you can use the <code>docker image ls</code> command:</p>
+<p><img border="0" src="docker7.png" width="661" height="100"></p>
+<p>Note the image named &quot;test&quot;!</p>
+<h3>Run the Image in a Container from the Windows Shell</h3>
+<p>This gets more complicated.&nbsp; Docker communicates between the host 
+(Windows) shell and the Docker VirtualBox VM using named pipes.&nbsp; The 
+configuration for your host's environment is not automatically done for you when 
+you install the Docker Toolbox.&nbsp; You can figure out what host environment 
+variables need to be set by using <code>docker-machine env default</code>: (note 
+this is running from a Windows shell):</p>
+<p><img border="0" src="docker8.png" width="512" height="216"></p>
+<p>In order to communicate between the host shell and the Docker VM, you must 
+set these environment variables!</p>
+<p>Once you've done that, open a new shell and type in the same command you used 
+in the Docker terminal to run the test application:</p>
+<p><img border="0" src="docker9.png" width="334" height="105"></p>
+<p>Success again!&nbsp; We've now demonstrated that a Docker image can be run in 
+a container directly from Windows.</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+</body>
+
+</html>
