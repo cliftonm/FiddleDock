@@ -11,8 +11,57 @@
 <p>Create a Dockerized Python Fiddle Web App</p>
 <p>Using C#, a simple web server, and Docker, I show you how to create a 
 &quot;Fiddle&quot; website to run Python (or other script languages)</p>
-<!-- INSERT contents -->
-<h2>Introduction</h2>
+<h2>Contents</h2><ul>
+<li><a href="#Introduction0">Introduction</a></li>
+<ul>
+<li><a href="#WhatILearned1">What I Learned</a></li>
+</ul>
+<li><a href="#WhyUseDocker2">Why Use Docker?</a></li>
+<ul>
+<li><a href="#Security3">Security</a></li>
+<li><a href="#ImportantThingsIIgnore4">Important Things I Ignore</a></li>
+</ul>
+<li><a href="#GettingStartedwithDocker5">Getting Started with Docker</a></li>
+<ul>
+<li><a href="#InstallingDocker6">Installing Docker</a></li>
+<li><a href="#UsingtheDockerQuickstartTerminal7">Using the Docker Quickstart Terminal</a></li>
+<li><a href="#CreateYourFirstImage-TheBasics8">Create Your First Image - The Basics</a></li>
+<li><a href="#BuildtheImage9">Build the Image</a></li>
+<li><a href="#RuntheImageinaContainerfromInsidetheTerminal10">Run the Image in a Container from Inside the Terminal</a></li>
+<li><a href="#ListDockerImages11">List Docker Images</a></li>
+<li><a href="#RuntheImageinaContainerfromtheWindowsShell12">Run the Image in a Container from the Windows Shell</a></li>
+<li><a href="#ButareContainersReallyIsolated13">But are Containers Really Isolated?</a></li>
+</ul>
+<li><a href="#BuildingTheFiddleDockWebApp14">Building The FiddleDock Web App</a></li>
+<ul>
+<li><a href="#ThePythonHTTPServer15">The Python HTTP Server</a></li>
+<ul>
+<li><a href="#ThirdPartyPackages16">Third Party Packages</a></li>
+<li><a href="#GettingDockertoImportourPythonDependencies17">Getting Docker to Import our Python Dependencies</a></li>
+<li><a href="#ThePythonHTTPServer18">The Python HTTP Server</a></li>
+<li><a href="#LaunchingtheContainer19">Launching the Container</a></li>
+<li><a href="#TestingthePythonHTTPServer20">Testing the Python HTTP Server</a></li>
+<li><a href="#UploadingaSimplePythonScript21">Uploading a Simple Python Script</a></li>
+<li><a href="#RunningOurTestScript22">Running Our Test Script</a></li>
+</ul>
+<li><a href="#TheHostWindowsWebServer23">The Host Windows Web Server</a></li>
+<ul>
+<li><a href="#TheHTTPServer24">The HTTP Server</a></li>
+<li><a href="#InitializingtheHostServer25">Initializing the Host Server </a></li>
+<li><a href="#TheUI26">The UI</a></li>
+<li><a href="#TheJavascript27">The Javascript</a></li>
+<li><a href="#LaunchingaProcess28">Launching a Process</a></li>
+<li><a href="#SomethingSimple--RunningtheScriptontheHost29">Something Simple -- Running the Script on the Host</a></li>
+<li><a href="#LessSimple--RunningtheScriptontheHost30">Less Simple -- Running the Script on the Host</a></li>
+<li><a href="#CreatinganewInstance(DockerContainer)31">Creating a new Instance (Docker Container)</a></li>
+<li><a href="#DeletinganInstance(DockerContainer)32">Deleting an Instance (Docker Container)</a></li>
+</ul>
+</ul>
+<li><a href="#AFunExample33">A Fun Example</a></li>
+<li><a href="#Conclusion34">Conclusion</a></li>
+</ul>
+
+<h2><a name="Introduction0">Introduction</a></h2>
 <p><img border="0" src="screenshot.png" width="707" height="559"></p>
 <p>First off, a disclaimer -- I am new to Docker and this probably is not the 
 easiest/best way to do this.&nbsp; There are a few ways to implement this 
@@ -37,7 +86,9 @@ take at one time!</p>
 	<li>Exposes some behaviors you wouldn't actually expose on a real Fiddle 
 	website, but is useful for demonstrating some features in this article.</li>
 </ol>
-<h3>What I Learned</h3>
+<p>Besides the download, the latest code can be found on
+<a href="https://github.com/cliftonm/FiddleDock">GitHub</a>.</p>
+<h3><a name="WhatILearned1">What I Learned</a></h3>
 <ol>
 	<li>All about the pain points of getting a Docker container up and running</li>
 	<li>Creating a simple web server in C#</li>
@@ -49,14 +100,14 @@ take at one time!</p>
 	<li>Basic building of a Docker image</li>
 	<li>Nuances of Python scripts in Windows 7 and Windows 10</li>
 </ol>
-<h2>Why Use Docker</h2>
+<h2><a name="WhyUseDocker2">Why Use Docker?</a></h2>
 <p>Two main reasons, particularly when exposing something as dangerous as 
 letting a user run code on your server:</p>
 <ul>
 	<li>Security</li>
 	<li>Isolation from other users</li>
 </ul>
-<h3>Security</h3>
+<h3><a name="Security3">Security</a></h3>
 <p>Docker creates an isolated container that has no access to your host 
 environment unless you explicitly create a bridge (either shared files or 
 exposed ports).&nbsp; This protects the web application from malicious attacks.&nbsp; If 
@@ -73,7 +124,7 @@ executing the Python code in a completely different OS:</p>
 <p>Here the code is running in a container that the web app creates on the fly 
 from a baseline Docker image.&nbsp; Starting the container takes a few seconds, 
 but once the container is running, interacting with it is very fast.</p>
-<h3>Important Things I Ignore</h3>
+<h3><a name="ImportantThingsIIgnore4">Important Things I Ignore</a></h3>
 <ul>
 	<li>The number of concurrent containers - you would never deploy this as a 
 	real web application because the server could easily be overwhelmed with 
@@ -95,8 +146,8 @@ but once the container is running, interacting with it is very fast.</p>
 	Internet.&nbsp; The last thing you want to discover is that someone is 
 	running a DoS attack through your Fiddle web app.</li>
 </ul>
-<h2>Getting Started with Docker</h2>
-<h3>Installing Docker</h3>
+<h2><a name="GettingStartedwithDocker5">Getting Started with Docker</a></h2>
+<h3><a name="InstallingDocker6">Installing Docker</a></h3>
 <p>The OS's I used in the development of this demonstration app are Windows 7 
 Professional and Windows 10 Home editions.&nbsp; Neither of these OS's support
 <a href="https://en.wikipedia.org/wiki/Hyper-V">Hyper-V</a> (the ability to 
@@ -107,7 +158,7 @@ your OS is Hyper-V capable, then can download the
 <a href="https://www.docker.com/community-edition">Docker Community Edition</a> 
 instead.&nbsp; Just beware that there might be some minor differences with 
 regards to the contents of this article.</p>
-<h3>Using the Docker Quickstart Terminal</h3>
+<h3><a name="UsingtheDockerQuickstartTerminal7">Using the Docker Quickstart Terminal</a></h3>
 <p>As noted, I installed the Docker Toolbox, which creates these shortcuts in 
 the Start menu:</p>
 <p><img border="0" src="docker1.png" width="209" height="61"></p>
@@ -129,7 +180,7 @@ for example:</p>
 <p><img border="0" src="docker3.png" width="196" height="228"></p>
 <p>Docker <i>images</i> are built from specifications that you create (usually 
 in subfolders) from this directory (in my case, c:\Users\Marc).</p>
-<h3>Create Your First Image - The Basics</h3>
+<h3><a name="CreateYourFirstImage-TheBasics8">Create Your First Image - The Basics</a></h3>
 <p>On your host (Windows), in your 
 <code>c:\Users\[your username]</code> folder, create a folder called &quot;test&quot; and 
 the following files (I'm using Sublime editor for these files):</p>
@@ -163,7 +214,7 @@ nothing will happen (this is a Python thing.)</p>
 <p>We see that these files, in the &quot;test&quot; folder that I put them in, are visible 
 in the terminal:</p>
 <p><img border="0" src="docker4.png" width="206" height="135"></p>
-<h3>Build the Image</h3>
+<h3><a name="BuildtheImage9">Build the Image</a></h3>
 <p>In the terminal, the image is built with the command <code>docker build -t test ./test</code></p>
 <p><img border="0" src="docker5.png" width="661" height="285"></p>
 <p>This tells Docker to create an image called &quot;test&quot;, and the definition of the 
@@ -173,16 +224,16 @@ using a long hex image ID string instead.&nbsp; Read more about Docker build
 options
 <a href="https://docs.docker.com/engine/reference/commandline/build/#options">
 here</a>.</p>
-<h3>Run the Image in a Container from Inside the Terminal</h3>
+<h3><a name="RuntheImageinaContainerfromInsidetheTerminal10">Run the Image in a Container from Inside the Terminal</a></h3>
 <p>We can now run the image with <code>docker run test python hello.py</code></p>
 <p><img border="0" src="docker6.png" width="245" height="134"></p>
 <p><img border="0" src="smiley.png" width="32" height="32"> Success!&nbsp; Here we are telling Docker to run the image &quot;test&quot; and we're 
 passing in a command line that the container will execute.</p>
-<h3>List Docker Images</h3>
+<h3><a name="ListDockerImages11">List Docker Images</a></h3>
 <p>To see what images you've created, you can use the <code>docker image ls</code> command:</p>
 <p><img border="0" src="docker7.png" width="661" height="100"></p>
 <p>Note the image named &quot;test&quot;!</p>
-<h3>Run the Image in a Container from the Windows Shell</h3>
+<h3><a name="RuntheImageinaContainerfromtheWindowsShell12">Run the Image in a Container from the Windows Shell</a></h3>
 <p>This gets more complicated.&nbsp; Docker communicates between the host 
 (Windows) shell and the Docker VirtualBox VM using named pipes.&nbsp; </p>
 <p><img border="0" src="important.png" width="38" height="32"> The 
@@ -198,7 +249,7 @@ in the Docker terminal to run the test application:</p>
 <p><img border="0" src="docker9.png" width="334" height="105"></p>
 <p><img border="0" src="smiley.png" width="32" height="32">&nbsp; Success again!&nbsp; We've now demonstrated that a Docker image can be run in 
 a container directly from Windows.</p>
-<h3>But are Containers Really Isolated?</h3>
+<h3><a name="ButareContainersReallyIsolated13">But are Containers Really Isolated?</a></h3>
 <p>This is, after all, the premise of Docker -- that images are run in isolated 
 containers.&nbsp; We can prove this by writing a small Python application that 
 creates a unique file and verifying that each container sees only its file.&nbsp; 
@@ -226,7 +277,7 @@ when the image was created, and that each container is isolated.&nbsp; There are
 of course ways to share data between Docker containers (read more
 <a href="https://www.digitalocean.com/community/tutorials/how-to-share-data-between-docker-containers">
 here</a>) but that is not what we're interested in.</p>
-<h2>Building The FiddleDock Web App</h2>
+<h2><a name="BuildingTheFiddleDockWebApp14">Building The FiddleDock Web App</a></h2>
 <p>Now that we have the basics of creating a Docker image and running a 
 container taken care, of the next step is to actually build something useful.&nbsp; 
 The overall plan looks like this:</p>
@@ -242,10 +293,10 @@ The overall plan looks like this:</p>
 	<li>An HTTP server application implemented in Python that lets our web 
 	server talk to the code running in the Docker container</li>
 </ul>
-<h3>The Python HTTP Server</h3>
+<h3><a name="ThePythonHTTPServer15">The Python HTTP Server</a></h3>
 <p>Let's start with the Python HTTP server, as we can test many things without 
 the web server.</p>
-<h4>Third Party Packages</h4>
+<h4><a name="ThirdPartyPackages16">Third Party Packages</a></h4>
 <p>Two third party packages that we rely on are:</p>
 <p><a href="http://flask.pocoo.org/">Flask</a> - Flask is a microframework for 
 Python, itself based on a couple other packages, and it certainly does more than 
@@ -263,7 +314,7 @@ m = DotMap()
 m.foo = 1
 print(m.foo)</pre>
 <p>I'm not fond of hard-coded literals in code, and DotMap hides that from us.</p>
-<h4>Getting Docker to Import our Python Dependencies</h4>
+<h4><a name="GettingDockertoImportourPythonDependencies17">Getting Docker to Import our Python Dependencies</a></h4>
 <p>Let's add a line to our Dockerfile:</p>
 <code>RUN pip install -r requirements.txt&nbsp;</code>
 <p>and create the file requirements.txt:</p>
@@ -279,7 +330,7 @@ over that later.</p>
 <p>After having changed our Dockerfile and created the requirements.txt, when we 
 go to build the image, Docker's build process will run the <code>pip install</code> command 
 and our dependencies will have been download and installed!</p>
-<h4>The Python HTTP Server</h4>
+<h4><a name="ThePythonHTTPServer18">The Python HTTP Server</a></h4>
 <p>Here's the complete code for the Python HTTP server:</p>
 <pre>#pylint: disable=I0011, C0103, C0111, W0702, line-too-long
 &quot;&quot;&quot; HTTP Server &quot;&quot;&quot;
@@ -416,7 +467,7 @@ if __name__ == &quot;__main__&quot;:
 <p>Capturing the STDOUT and STDERR output of a process is not easy, which is 
 what the <code>StdoutWatcher</code> class does.&nbsp; While this is only 21 lines of code, it 
 represented several hours worth of investigation!</p>
-<h4>Launching the Container</h4>
+<h4><a name="LaunchingtheContainer19">Launching the Container</a></h4>
 <p>This is the fun part.&nbsp; We have to launch the container, exposing the 
 port of the Python HTTP server so that it can be seen by our Windows host.&nbsp; 
 We do this using the -p Docker command line option to map a port in the VM to a 
@@ -433,7 +484,7 @@ time.&nbsp;&nbsp; This little feature in itself took hours to figure out!</p>
 <p>Also note that &quot;fiddlepy&quot; is my image name.</p>
 <p>When we start the container, after a couple seconds, we see:</p>
 <p><img border="0" src="fp1.png" width="627" height="74"></p>
-<h4>Testing the Python HTTP Server</h4>
+<h4><a name="TestingthePythonHTTPServer20">Testing the Python HTTP Server</a></h4>
 <p>(What, you were expecting unit tests???)</p>
 <p>We can now browse to the <i>Docker's IP</i> and the exposed port, and we get:</p>
 <p><img border="0" src="fp2.png" width="261" height="72"></p>
@@ -446,7 +497,7 @@ related to the JSON content type.</p>
 <p><img border="0" src="fp4.png" width="805" height="383"></p>
 <p>Observe that the Python HTTP server has exited and we're back to the command 
 line prompt in the console window.</p>
-<h4>Uploading a Simple Python Script</h4>
+<h4><a name="UploadingaSimplePythonScript21">Uploading a Simple Python Script</a></h4>
 <p>Let's upload a simple Python script to execute in the container.&nbsp; First, 
 we need to convert some text to base64, using
 <a href="http://www.base64encode.org">www.base64encode.org</a> (the web is 
@@ -456,7 +507,7 @@ great):</p>
 run...&quot; again):</p>
 <p><img border="0" src="fp6.png" width="909" height="446"></p>
 <p>Cool, we got an &quot;OK&quot; response.</p>
-<h4>Running Our Test Script</h4>
+<h4><a name="RunningOurTestScript22">Running Our Test Script</a></h4>
 <p>Now let's run our Python script in the Docker container:</p>
 <p><img border="0" src="fp7.png" width="904" height="355"></p>
 <p>Snazzy!&nbsp; </p>
@@ -467,10 +518,10 @@ run...&quot; again):</p>
 	<li>The result of the script is returned in response!</li>
 </ol>
 <p>That was (hopefully) relatively painless.</p>
-<h3>The Host Windows Web Server</h3>
+<h3><a name="TheHostWindowsWebServer23">The Host Windows Web Server</a></h3>
 <p>Now that we've got the Python HTTP server written and tested, it's time to 
 write the front-end that is exposed to the user in their browser.</p>
-<h4>The HTTP Server</h4>
+<h4><a name="TheHTTPServer24">The HTTP Server</a></h4>
 <p>If you write an HTTP server from the native .NET framework, which is what I 
 did here, it's a little scary how many lines of code it requires (of course, 
 Flask in Python is a lot of lines of code too), and I'll be damned if I'm going 
@@ -636,7 +687,7 @@ namespace FiddleDock
   }
 }</pre>
 <p>Whew!</p>
-<h4>Initializing the Host Server </h4>
+<h4><a name="InitializingtheHostServer25">Initializing the Host Server </a></h4>
 <p>I implemented a rather brain dead routing mechanism, which you'll see here:</p>
 <pre>using System;
 using System.IO;
@@ -715,7 +766,7 @@ namespace FiddleDock
 <p><img border="0" src="talkToTheHand.jpg" width="250" height="202"></p>
 <p>The salient parts are the last four POST commands, which is the part we're 
 interested in.</p>
-<h4>The UI</h4>
+<h4><a name="TheUI26">The UI</a></h4>
 <p><img border="0" src="ui1.png" width="896" height="362"></p>
 <p>This is the UI we're building.&nbsp; [trump-mode]Very simple, it's really 
 great.[/trump-mode]</p>
@@ -775,7 +826,7 @@ great.[/trump-mode]</p>
 &lt;/body&gt;</pre>
 <p>OK, there's embedded styles that should be in the fiddledock.css file.&nbsp; 
 Do I need to bring Yoda out again?</p>
-<h4>The Javascript</h4>
+<h4><a name="TheJavascript27">The Javascript</a></h4>
 <p>I like clean Javascript (if I have to write in a dirty language, I tend to 
 try and make the code extra neat):</p>
 <pre>$(document).ready(function () {
@@ -849,7 +900,7 @@ function postJson(url, data, onSuccess, onFail) {
 function ajaxError(data) {
   alert(data.statusText);
 }</pre>
-<h4>Launching a Process</h4>
+<h4><a name="LaunchingaProcess28">Launching a Process</a></h4>
 <p>Starting with the low level details, this is what we need to do to launch a 
 process that executes the &quot;docker run...&quot; command.&nbsp; Note that we have to 
 explicitly set the environment variables (hmm, what was I saying before about 
@@ -901,7 +952,7 @@ namespace FiddleDock
 <p>This is pretty standard configuration stuff using .NET's <code>Process</code> 
 class but you may not often have to redirect STDOUT and STDERR and set up a 
 listener.</p>
-<h4>Something Simple -- Running the Script on the Host</h4>
+<h4><a name="SomethingSimple--RunningtheScriptontheHost29">Something Simple -- Running the Script on the Host</a></h4>
 <p>For comparison, you can run the script on the Windows host machine 
 (obviously, you wouldn't expose this in the wild wild web):</p>
 <pre>using System;
@@ -962,7 +1013,7 @@ namespace FiddleDock.RouteHandlers
 <p><img border="0" src="ui2.png" width="935" height="373"></p>
 <p>All that happens behind the scenes is that we launch <code>python -u [temp 
 filename]</code> on our host and capture the output.</p>
-<h4>Less Simple -- Running the Script on the Host</h4>
+<h4><a name="LessSimple--RunningtheScriptontheHost30">Less Simple -- Running the Script on the Host</a></h4>
 <p>Here we're going to pay attention to a few things, such as the session, 
 determined by the request endpoint IP, because as a &quot;real&quot; web app, we're going 
 to need to track the containers that we've created for a session and re-use them 
@@ -1322,7 +1373,7 @@ correct Docker instance over the correct port.</p>
 container lives until the instance is destroyed (by you on the UI) and so once 
 the container is created, the response time for running additional scripts is 
 faster.</p>
-<h4>Creating a new Instance (Docker Container)</h4>
+<h4><a name="CreatinganewInstance(DockerContainer)31">Creating a new Instance (Docker Container)</a></h4>
 <p>This leverages the code in the base class:</p>
 <pre>public class CreateNewInstance : DockerManagement
 {
@@ -1346,7 +1397,7 @@ faster.</p>
     return Encoding.UTF8.GetBytes(&quot;{\&quot;status\&quot;:\&quot;ok\&quot;}&quot;);
   }
 }</pre>
-<h4>Deleting an Instance (Docker Container)</h4>
+<h4><a name="DeletinganInstance(DockerContainer)32">Deleting an Instance (Docker Container)</a></h4>
 <p>Again, this leverages the code in the base class (I probably should have 
 implemented the base class as a helper function!)</p>
 <pre>public class DeleteInstance : DockerManagement
@@ -1370,7 +1421,7 @@ implemented the base class as a helper function!)</p>
     return Encoding.UTF8.GetBytes(&quot;{\&quot;status\&quot;:\&quot;ok\&quot;}&quot;);
   }
 }</pre>
-<h2>A Fun Example</h2>
+<h2><a name="AFunExample33">A Fun Example</a></h2>
 <p>Now that we're all done with the implementation, we can run a fun example in 
 our FiddleDock.&nbsp; This Python code scrapes the website
 <a href="http://www.onthisday.com">www.onthisday.com</a>, extracting the &quot;Person 
@@ -1393,7 +1444,7 @@ for poi in pois:
 quite a while to figure out how to do this!&nbsp; The result is the screenshot 
 at the beginning of this article:</p>
 <p><img border="0" src="screenshot.png" width="707" height="559"></p>
-<h2>Conclusion</h2>
+<h2><a name="Conclusion34">Conclusion</a></h2>
 <p>This was clearly a deep learning exercise.&nbsp; While the goal was simple, I 
 was surprised I didn't find an existing implementation.&nbsp; As I mentioned, my 
 implementation is not the best, but it demonstrates a variety of techniques for 
