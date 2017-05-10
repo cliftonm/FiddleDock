@@ -30,11 +30,11 @@ namespace FiddleDock
 
 		public WebServer()
 		{
-			routeHandlers = new Dictionary<Route, Func<HttpListenerContext, Response>>();
+			routeHandlers = new Dictionary<Route, Func<HttpListenerContext, Session, Response>>();
 			sessionManager = new SessionManager();
 		}
 
-		public void AddRoute(string verb, string path, Func<HttpListenerContext, Response> handler)
+		public void AddRoute(string verb, string path, Func<HttpListenerContext, Session, Response> handler)
 		{
 			routeHandlers.Add(new Route(verb, path), handler);
 		}
@@ -107,7 +107,7 @@ namespace FiddleDock
 
 			Logger.Fire(this, new LogEventArgs() { Message = context.Request.Url.LocalPath });
 
-			sessionManager.AddSessionIfNew(context.Request.RemoteEndPoint.Address);
+			Session session = sessionManager.AddSessionIfNew(context.Request.RemoteEndPoint.Address);
 
 			string verb = context.Request.HttpMethod;
 			string path = context.Request.Url.LocalPath;

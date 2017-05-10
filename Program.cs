@@ -31,19 +31,20 @@ namespace FiddleDock
 
 		private static void InitializeRoutes(WebServer ws)
 		{
-			ws.AddRoute("GET", "/", (context) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
-			ws.AddRoute("GET", "/index", (context) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
-			ws.AddRoute("GET", "/index.html", (context) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
-			ws.AddRoute("GET", "*.js", (context) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/javascript" });
-			ws.AddRoute("GET", "*.css", (context) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/css" });
-			ws.AddRoute("GET", "*.jpg", (context) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/jpg" });
-			ws.AddRoute("GET", "*.png", (context) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/png" });
-			ws.AddRoute("GET", "*.bmp", (context) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/bmp" });
-			ws.AddRoute("GET", "*.ico", (context) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/x-icon" });
+			ws.AddRoute("GET", "/", (context, _) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "/index", (context, _) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "/index.html", (context, _) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), "index.html")), ContentType = "text/html" });
+			ws.AddRoute("GET", "*.js", (context, _) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/javascript" });
+			ws.AddRoute("GET", "*.css", (context, _) => new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "text/css" });
+			ws.AddRoute("GET", "*.jpg", (context, _) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/jpg" });
+			ws.AddRoute("GET", "*.png", (context, _) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/png" });
+			ws.AddRoute("GET", "*.bmp", (context, _) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/bmp" });
+			ws.AddRoute("GET", "*.ico", (context, _) => new BinaryResponse() { ByteData = File.ReadAllBytes(Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), ContentType = "image/x-icon" });
 
-			ws.AddRoute("POST", "/run", (context) => new Run() { ContentType = "text/json" });
-			ws.AddRoute("POST", "/runOnHost", (context) => new RunOnHost() { ContentType = "text/json" });
-			ws.AddRoute("POST", "/runOnDocker", (context) => new RunOnDocker() { ContentType = "text/json" });
+			ws.AddRoute("POST", "/runOnHost", (context, _) => new RunOnHost() { ContentType = "text/json" });
+			ws.AddRoute("POST", "/runOnDocker", (context, session) => new RunOnDocker(session) { ContentType = "text/json" });
+			ws.AddRoute("POST", "/createNewInstance", (context, session) => new CreateNewInstance(session) { ContentType = "text/json" });
+			ws.AddRoute("POST", "/deleteInstance", (context, session) => new DeleteInstance(session) { ContentType = "text/json" });
 		}
 	}
 }

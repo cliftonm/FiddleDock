@@ -30,7 +30,7 @@
                     </select>
                 </div>
                 <div class="top-margin-10">
-                    <button id="deleteInstance">Delete Instance</button>
+                    <button id="deleteInstance">Delete Last Instance</button>
                 </div>
                 <div class="top-margin-10">
                     <button id="createInstance">Create New Instance</button>
@@ -66,13 +66,13 @@
         $("#runOnDocker").on("click", runCodeOnDocker);
         $("#runOnHost").on("click", runCodeOnHost);
         $("#createInstance").on("click", createInstance);
-        $("#deleteInstance").on("click", deleteInstance);
-        $("#instanceList").on("change", selectInstance);
+        $("#deleteInstance").on("click", deleteLastInstance);
     });
 
     function runCodeOnDocker() {
         var code = editor.getValue();
-        postJson("/runOnDocker", { "code": btoa(code) }, runResponse, ajaxError)
+        var instanceNumber = $("#instanceList").val();
+        postJson("/runOnDocker", { "code": btoa(code), "instanceNumber": instanceNumber }, runResponse, ajaxError)
     }
 
     function runCodeOnHost() {
@@ -85,22 +85,34 @@
     }
 
     function createInstance() {
+        // Gotta love how $("#instanceList).size() and .length simply don't work.
+        var numOptions = $("#instanceList > option").length;
+        var newOption = numOptions + 1;
+        $("#instanceList").append($('<option>', { value: newOption, text: newOption }));
+        postJson("/createNewInstance", { "instanceNumber": newOption }, instanceCreated, ajaxError)
     }
 
-    function selectInstance() {
+    function instanceCreated(resp) {
+        alert("Instance created.");
     }
 
-    function deleteInstance() {
+    function deleteLastInstance() {
         if (moreThanOneInstance()) {
-
+            var numOptions = $("#instanceList > option").length;
+            $("#instanceList option[value='" + numOptions + "']").remove();
+            postJson("/deleteInstance", { "instanceNumber": numOptions }, instanceDeleted, ajaxError)
         }
         else {
             alert("At least one instance must exist.");
         }
     }
 
+    function instanceDeleted(resp) {
+        alert("Instance deleted.");
+    }
+
     function moreThanOneInstance() {
-        return $("#instanceList option").size() > 1
+        return $("#instanceList > option").length > 1
     }
 
     function postJson(url, data, onSuccess, onFail) {
@@ -114,7 +126,7 @@
     }
 
     function ajaxError(data) {
-        alert(data);
+        alert(data.statusText);
     }
 
 </script>

@@ -706,11 +706,13 @@ namespace FiddleDock
 
       ws.AddRoute(&quot;POST&quot;, &quot;/runOnHost&quot;, (context, _) =&gt; new RunOnHost() { ContentType = &quot;text/json&quot; });
       ws.AddRoute(&quot;POST&quot;, &quot;/runOnDocker&quot;, (context, session) =&gt; new RunOnDocker(session) { ContentType = &quot;text/json&quot; });
+      ws.AddRoute(&quot;POST&quot;, &quot;/createNewInstance&quot;, (context, session) =&gt; new CreateNewInstance(session) { ContentType = &quot;text/json&quot; });
+      ws.AddRoute(&quot;POST&quot;, &quot;/deleteInstance&quot;, (context, session) =&gt; new DeleteInstance(session) { ContentType = &quot;text/json&quot; });
     }
   }
 }</pre>
 <p><img border="0" src="talkToTheHand.jpg" width="250" height="202"></p>
-<p>The salient parts are the last two POST commands, which is the part we're 
+<p>The salient parts are the last four POST commands, which is the part we're 
 interested in.</p>
 <h4>The UI</h4>
 <p><img border="0" src="ui1.png" width="896" height="362"></p>
@@ -784,13 +786,13 @@ try and make the code extra neat):</p>
   $(&quot;#runOnDocker&quot;).on(&quot;click&quot;, runCodeOnDocker);
   $(&quot;#runOnHost&quot;).on(&quot;click&quot;, runCodeOnHost);
   $(&quot;#createInstance&quot;).on(&quot;click&quot;, createInstance);
-  $(&quot;#deleteInstance&quot;).on(&quot;click&quot;, deleteInstance);
-  $(&quot;#instanceList&quot;).on(&quot;change&quot;, selectInstance);
+  $(&quot;#deleteInstance&quot;).on(&quot;click&quot;, deleteLastInstance);
 });
 
 function runCodeOnDocker() {
   var code = editor.getValue();
-  postJson(&quot;/runOnDocker&quot;, { &quot;code&quot;: btoa(code) }, runResponse, ajaxError)
+  var instanceNumber = $(&quot;#instanceList&quot;).val();
+  postJson(&quot;/runOnDocker&quot;, { &quot;code&quot;: btoa(code), &quot;instanceNumber&quot;: instanceNumber }, runResponse, ajaxError)
 }
 
 function runCodeOnHost() {
@@ -803,21 +805,23 @@ function runResponse(resp) {
 }
 
 function createInstance() {
+  // Gotta love how $(&quot;#instanceList).size() and .length simply don't work.
+  var numOptions = $(&quot;#instanceList &gt; option&quot;).length;
+  var newOption = numOptions + 1;
+  $(&quot;#instanceList&quot;).append($('&lt;option&gt;', { value: newOption, text: newOption }));
+  postJson(&quot;/createNewInstance&quot;, { &quot;instanceNumber&quot;: newOption }, instanceCreated, ajaxError)
 }
 
-function selectInstance() {
-}
-
-function deleteInstance() {
+function deleteLastInstance() {
   if (moreThanOneInstance()) {
   }
   else {
-  alert(&quot;At least one instance must exist.&quot;);
+    alert(&quot;At least one instance must exist.&quot;);
   }
 }
 
 function moreThanOneInstance() {
-  return $(&quot;#instanceList option&quot;).size() &gt; 1
+  return $(&quot;#instanceList &gt; option&quot;).length &gt; 1
 }
 
 function postJson(url, data, onSuccess, onFail) {
@@ -831,7 +835,7 @@ function postJson(url, data, onSuccess, onFail) {
 }
 
 function ajaxError(data) {
-  alert(data);
+  alert(data.statusText);
 }</pre>
 <h4>Launching a Process</h4>
 <p>Starting with the low level details, this is what we need to do to launch a 

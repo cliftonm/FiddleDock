@@ -47,8 +47,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Constants.cs" />
+    <Compile Include="DockerManagement.cs" />
     <Compile Include="PythonCode.cs" />
     <Compile Include="RouteHandlers\BinaryResponse.cs" />
+    <Compile Include="RouteHandlers\CreateNewInstance.cs" />
+    <Compile Include="RouteHandlers\DeleteInstance.cs" />
     <Compile Include="RouteHandlers\Response.cs" />
     <Compile Include="ExtensionMethods.cs" />
     <Compile Include="Program.cs" />
@@ -59,6 +62,8 @@
     <Compile Include="RouteHandlers\RunOnHost.cs" />
     <Compile Include="RouteHandlers\StringResponse.cs" />
     <Compile Include="Runner.cs" />
+    <Compile Include="Session.cs" />
+    <Compile Include="SessionManager.cs" />
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
