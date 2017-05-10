@@ -11,8 +11,6 @@ using Clifton.Core.ExtensionMethods;
 
 using FiddleDock.RouteHandlers;
 
-// http://stackoverflow.com/questions/38382971/predefined-type-system-valuetuple%C2%B42%C2%B4-is-not-defined-or-imported
-
 namespace FiddleDock
 {
 	public class LogEventArgs : EventArgs
@@ -27,11 +25,13 @@ namespace FiddleDock
 		protected int maxSimultaneousConnections = 20;
 		protected int httpPort = 80;
 		protected Semaphore sem;
-		protected Dictionary<Route, Func<HttpListenerContext, Response>> routeHandlers;
+		protected Dictionary<Route, Func<HttpListenerContext, Session, Response>> routeHandlers;
+		protected SessionManager sessionManager;
 
 		public WebServer()
 		{
 			routeHandlers = new Dictionary<Route, Func<HttpListenerContext, Response>>();
+			sessionManager = new SessionManager();
 		}
 
 		public void AddRoute(string verb, string path, Func<HttpListenerContext, Response> handler)
@@ -107,6 +107,8 @@ namespace FiddleDock
 
 			Logger.Fire(this, new LogEventArgs() { Message = context.Request.Url.LocalPath });
 
+			sessionManager.AddSessionIfNew(context.Request.RemoteEndPoint.Address);
+
 			string verb = context.Request.HttpMethod;
 			string path = context.Request.Url.LocalPath;
 			string requestData = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
@@ -129,7 +131,7 @@ namespace FiddleDock
 
 				try
 				{
-					Response response = routes.First().Value(context);
+					Response response = routes.First().Value(context, session);
 					response.Execute(requestData);
 					Respond(context, response);
 				}

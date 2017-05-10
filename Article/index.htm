@@ -8,7 +8,7 @@
 
 <body>
 
-<p>Create a Dockerized Python Fiddle Website </p>
+<p>Create a Dockerized Python Fiddle Web App</p>
 <p>Using C#, a simple web server, and Docker, I show you how to create a 
 &quot;Fiddle&quot; website to run Python (or other script languages)</p>
 <h2>Introduction</h2>
@@ -175,7 +175,7 @@ here</a>.</p>
 <h3>Run the Image in a Container from Inside the Terminal</h3>
 <p>We can now run the image with <code>docker run test python hello.py</code></p>
 <p><img border="0" src="docker6.png" width="245" height="134"></p>
-<p>Success!&nbsp; Here we are telling Docker to run the image &quot;test&quot; and we're 
+<p><img border="0" src="smiley.png" width="32" height="32"> Success!&nbsp; Here we are telling Docker to run the image &quot;test&quot; and we're 
 passing in a command line that the container will execute.</p>
 <h3>List Docker Images</h3>
 <p>To see what images you've created, you can use the <code>docker image ls</code> command:</p>
@@ -183,7 +183,8 @@ passing in a command line that the container will execute.</p>
 <p>Note the image named &quot;test&quot;!</p>
 <h3>Run the Image in a Container from the Windows Shell</h3>
 <p>This gets more complicated.&nbsp; Docker communicates between the host 
-(Windows) shell and the Docker VirtualBox VM using named pipes.&nbsp; The 
+(Windows) shell and the Docker VirtualBox VM using named pipes.&nbsp; </p>
+<p><img border="0" src="important.png" width="38" height="32"> The 
 configuration for your host's environment is not automatically done for you when 
 you install the Docker Toolbox.&nbsp; You can figure out what host environment 
 variables need to be set by using <code>docker-machine env default</code>: (note 
@@ -194,8 +195,765 @@ set these environment variables!</p>
 <p>Once you've done that, open a new shell and type in the same command you used 
 in the Docker terminal to run the test application:</p>
 <p><img border="0" src="docker9.png" width="334" height="105"></p>
-<p>Success again!&nbsp; We've now demonstrated that a Docker image can be run in 
+<p><img border="0" src="smiley.png" width="32" height="32">&nbsp; Success again!&nbsp; We've now demonstrated that a Docker image can be run in 
 a container directly from Windows.</p>
+<h3>But are Containers Really Isolated?</h3>
+<p>This is, after all, the premise of Docker -- that images are run in isolated 
+containers.&nbsp; We can prove this by writing a small Python application that 
+creates a unique file and verifying that each container sees only its file.&nbsp; 
+We'll write a simple Python app that creates a file given an filename and then 
+lists the contents of the folder.&nbsp; I put this code into the file &quot;containerTest.py&quot; 
+and rebuilt the image before running the image.</p>
+<pre>import os
+import sys
+
+print(&quot;Before:&quot;)
+print(os.listdir())
+
+fn = sys.argv[1]
+f = open(fn, &quot;w&quot;)
+f.close()
+
+print(&quot;After:&quot;)
+print(os.listdir())</pre>
+<p>When we run the image, we see that each container starts only with the files 
+that were copied over from our test folder, creates the file we tell it to, and 
+the container doesn't see any other files we created in other containers:</p>
+<p><img border="0" src="docker10.png" width="410" height="272"></p>
+<p>This shows us that the Docker container contains only the files that exist 
+when the image was created, and that each container is isolated.&nbsp; There are 
+of course ways to share data between Docker containers (read more
+<a href="https://www.digitalocean.com/community/tutorials/how-to-share-data-between-docker-containers">
+here</a>) but that is not what we're interested in.</p>
+<h2>Building The FiddleDock Web App</h2>
+<p>Now that we have the basics of creating a Docker image and running a 
+container taken care, of the next step is to actually build something useful.&nbsp; 
+The overall plan looks like this:</p>
+<p><img border="0" src="architecture.png" width="685" height="313"></p>
+<ul>
+	<li>A simple web server implemented in C# serves the main page.</li>
+	<li>We take advantage of the following three &quot;frameworks&quot;:<ul>
+		<li>jQuery (because everything uses jQuery)</li>
+		<li>Boostrap (because it makes layout easier)</li>
+		<li>Ace editor (an awesome syntax highlighting editor)</li>
+	</ul>
+	</li>
+	<li>An HTTP server application implemented in Python that lets our web 
+	server talk to the code running in the Docker container</li>
+</ul>
+<h3>The Python HTTP Server</h3>
+<p>Let's start with the Python HTTP server, as we can test many things without 
+the web server.</p>
+<h4>Third Party Packages</h4>
+<p>Two third party packages that we rely on are:</p>
+<p><a href="http://flask.pocoo.org/">Flask</a> - Flask is a microframework for 
+Python, itself based on a couple other packages, and it certainly does more than 
+we use it for here, which is as a web server router.</p>
+<p><a href="https://pypi.python.org/pypi/dotmap">DotMap</a> - DotMap let's us 
+use a dictionary with &quot;dot&quot; notation.&nbsp; </p>
+<p>DotMap is worth a brief explanation.&nbsp; It's the difference between 
+writing (in Python):</p>
+<pre>a = {}
+a[&quot;foo&quot;] = 1
+print(a[&quot;foo&quot;])</pre>
+<p>vs. using &quot;dot&quot; notation to create and access dictionary items:</p>
+<pre>from dotmap import DotMap
+m = DotMap()
+m.foo = 1
+print(m.foo)</pre>
+<p>I'm not fond of hard-coded literals in code, and DotMap hides that from us.</p>
+<h4>Getting Docker to Import our Python Dependencies</h4>
+<p>Let's add a line to our Dockerfile:</p>
+<code>RUN pip install -r requirements.txt&nbsp;</code>
+<p>and create the file requirements.txt:</p>
+<pre>Flask
+DotMap
+lxml
+cssselect
+requests</pre>
+<p>I've also added 3 other dependencies that I'll be using in the demo -- a 
+simple page scraper that returns the &quot;Person of Interest&quot; content from the 
+website <a href="http://www.onthisday.com">onthisday.com</a>.&nbsp; We'll go 
+over that later.</p>
+<p>After having changed our Dockerfile and created the requirements.txt, when we 
+go to build the image, Docker's build process will run the <code>pip install</code> command 
+and our dependencies will have been download and installed!</p>
+<h4>The Python HTTP Server</h4>
+<p>Here's the complete code for the Python HTTP server:</p>
+<pre>#pylint: disable=I0011, C0103, C0111, W0702, line-too-long
+&quot;&quot;&quot; HTTP Server &quot;&quot;&quot;
+
+from dotmap import DotMap # pip install DotMap
+from flask import Flask, request # pip install Flask
+import ast
+import argparse # https://docs.python.org/2/howto/argparse.html
+import base64
+import json # https://docs.python.org/2/library/json.html
+import subprocess
+import sys
+import threading
+import time
+
+class StdoutWatcher:
+  &quot;&quot;&quot; Watches stdout and concatenates lines &quot;&quot;&quot;
+  def __init__(self, p):
+    self.p = p
+    self.stopWatcher = False
+    self.responseLines = []
+
+  def startStdoutThread(self):
+    commThread = threading.Thread(target=self.stdoutWatcher)
+    commThread.daemon = True # stop if the program exits.
+    commThread.start()
+
+  def stdoutWatcher(self):
+    while not self.stopWatcher:
+      try:
+        for line in iter(self.p.stdout.readline, ''):
+          if line != b'':
+            self.responseLines.append(line.decode('utf-8'))
+            time.sleep(0.010)
+      except:
+        print(&quot;stdoutWatcher Exception: &quot; + str(sys.exc_info()[0]))
+        self.stopWatcher = True
+
+app = Flask(__name__)
+
+def getPacket():
+  js = str(request.get_json())
+  js = ast.literal_eval(js)
+  return DotMap(js)
+
+@app.route(&quot;/&quot;)
+def hello():
+  return &quot;Hello World!&quot;
+
+&quot;&quot;&quot;
+Example (the base64 string encodes &quot;Test String&quot;):
+{
+&quot;Filename&quot;: &quot;foo.txt&quot;,
+&quot;Content&quot;: &quot;VGVzdCBTdHJpbmc=&quot;,
+&quot;Encoding&quot;: &quot;base64&quot;
+}
+&quot;&quot;&quot;
+@app.route(&quot;/uploadfile&quot;, methods=['POST'])
+def uploadFile():
+  fileInfo = getPacket()
+  content = fileInfo.Content
+
+  if fileInfo.Encoding == &quot;base64&quot;:
+  # the &quot;decode&quot; method call converts the byte array to a UTF8 string.
+    content = base64.b64decode(content).decode('utf-8')
+
+  f = open(fileInfo.Filename, &quot;w&quot;)
+  f.write(content)
+  f.close()
+
+  return &quot;ok&quot;
+
+&quot;&quot;&quot;
+Example:
+{&quot;Filename&quot;: &quot;foo.py&quot;}
+&quot;&quot;&quot;
+@app.route(&quot;/run&quot;, methods=['POST'])
+def run():
+  runInfo = getPacket()
+  # The -u trick comes from http://stackoverflow.com/questions/2804543/read-subprocess-stdout-line-by-line
+  p = subprocess.Popen(['python', '-u', runInfo.Filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+  sw = StdoutWatcher(p)
+  sw.startStdoutThread()
+
+  # Wait for process to exit. We should add a watchdog to prevent hanging the server.
+  while p.poll() == None:
+    time.sleep(0.010)
+
+  return str(sw.responseLines)
+
+@app.route(&quot;/exit&quot;, methods=['POST'])
+def exit():
+  sys.exit()
+
+if __name__ == &quot;__main__&quot;:
+  parser = argparse.ArgumentParser()
+  parser.add_argument(&quot;-p&quot;, &quot;--port&quot;, help=&quot;Specifies the port number on which the server listens.&quot;)
+  args = parser.parse_args()
+  port = 1000
+
+  if args.port:
+    port = args.port
+
+  # host cannot be 127.0.0.1!
+  # Binding to 0.0.0.0 will bind your app in any interface available, localhost (127.0.0.1) does not.
+  app.run(host='0.0.0.0', port=port)</pre>
+<p>There are three parts to this:</p>
+<p><u>Application Initialization</u></p>
+<p>This is done in mostly at the bottom of the file (the exception being line 38 
+<code>app = Flask(__name__)</code>) and what's basically going on here is:</p>
+<ol>
+	<li>Make sure the module that is being run is the main application module 
+	(not some imported module) -- this is common Python practice to use <code>if __name__ == &quot;__main__:&quot;</code></li>
+	<li>If a port number is specified in the startup parameters, use that port</li>
+	<li>Start the Flask HTTP server</li>
+</ol>
+<p><u>Routes</u></p>
+<p>There are four routes:</p>
+<ol>
+	<li><code>@app.route(&quot;/&quot;)</code> - This is used by the C# server to wait (and verify) 
+	that the server is running when it launches the container</li>
+	<li><code>@app.route(&quot;/uploadfile&quot;, methods=['POST'])</code> - A POST method for 
+	uploading a base64 encoded UTF-8 string, representing the code the user 
+	wishes to run.</li>
+	<li><code>@app.route(&quot;/run&quot;, methods=['POST'])</code> - A POST method for running the 
+	user's code.</li>
+	<li><code>@app.route(&quot;/exit&quot;, methods=['POST'])</code> - A POST method for exiting the 
+	server.</li>
+</ol>
+<p></p>
+<p><u>Process Launcher and STDOUT/STDERR Watcher</u></p>
+<p>Launching a process is easy.</p>
+<pre>p = subprocess.Popen(['python', '-u', runInfo.Filename], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)</pre>
+<p>Capturing the STDOUT and STDERR output of a process is not easy, which is 
+what the <code>StdoutWatcher</code> class does.&nbsp; While this is only 21 lines of code, it 
+represented several hours worth of investigation!</p>
+<h4>Launching the Container</h4>
+<p>This is the fun part.&nbsp; We have to launch the container, exposing the 
+port of the Python HTTP server so that it can be seen by our Windows host.&nbsp; 
+We do this using the -p Docker command line option to map a port in the VM to a 
+port on our host.&nbsp; The basic syntax is [host port]:[docker port] and there 
+are several variations on this syntax as well.</p>
+<p>So let's launch the Python HTTP server, using port 4001:</p>
+<p><code>docker run -p 4001:4001 fiddlepy python -u server.py -p 4001</code></p>
+<p><img border="0" src="key-small.jpg" width="94" height="33">What is this &quot;-u&quot; 
+business we see everywhere?&nbsp; Well, basically it tells Python that STDOUT 
+and STDERR are to be <i>unbuffered</i>, meaning each line of output is received 
+immediately received by any STDOUT/STDERR listener.&nbsp; If we don't do this, 
+the subsystem (not Python) may buffer the output for an indeterminate amount of 
+time.&nbsp;&nbsp; This little feature in itself took hours to figure out!</p>
+<p>Also note that &quot;fiddlepy&quot; is my image name.</p>
+<p>When we start the container, after a couple seconds, we see:</p>
+<p><img border="0" src="fp1.png" width="627" height="74"></p>
+<h4>Testing the Python HTTP Server</h4>
+<p>(What, you were expecting unit tests???)</p>
+<p>We can now browse to the <i>Docker's IP</i> and the exposed port, and we get:</p>
+<p><img border="0" src="fp2.png" width="261" height="72"></p>
+<p><img border="0" src="smiley.png" width="32" height="32"> Yay!</p>
+<p>Note that Flask outputs the requests being sent to it:</p>
+<p><img border="0" src="fp3.png" width="547" height="105"></p>
+<p>We can exit the server by posting the exit method.&nbsp; For a Chrome plugin, 
+I prefer to use Postman, as I discovered that Advanced Rest Client has bugs 
+related to the JSON content type.</p>
+<p><img border="0" src="fp4.png" width="805" height="383"></p>
+<p>Observe that the Python HTTP server has exited and we're back to the command 
+line prompt in the console window.</p>
+<h4>Uploading a Simple Python Script</h4>
+<p>Let's upload a simple Python script to execute in the container.&nbsp; First, 
+we need to convert some text to base64, using
+<a href="http://www.base64encode.org">www.base64encode.org</a> (the web is 
+great):</p>
+<p><img border="0" src="fp5.png" width="632" height="643"></p>
+<p>Now we'll post that to the server (which, if you exited, you need to &quot;docker 
+run...&quot; again):</p>
+<p><img border="0" src="fp6.png" width="909" height="446"></p>
+<p>Cool, we got an &quot;OK&quot; response.</p>
+<h4>Running Our Test Script</h4>
+<p>Now let's run our Python script in the Docker container:</p>
+<p><img border="0" src="fp7.png" width="904" height="355"></p>
+<p>Snazzy!&nbsp; </p>
+<p>We have:</p>
+<ol>
+	<li>Uploaded a script to the container</li>
+	<li>Executed that script</li>
+	<li>The result of the script is returned in response!</li>
+</ol>
+<p>That was (hopefully) relatively painless.</p>
+<h3>The Host Windows Web Server</h3>
+<p>Now that we've got the Python HTTP server written and tested, it's time to 
+write the front-end that is exposed to the user in their browser.</p>
+<h4>The HTTP Server</h4>
+<p>If you write an HTTP server from the native .NET framework, which is what I 
+did here, it's a little scary how many lines of code it requires (of course, 
+Flask in Python is a lot of lines of code too), and I'll be damned if I'm going 
+to use a behemoth like ASP.NET.&nbsp; I could have used
+<a href="http://nancyfx.org/">Nancy</a>, but while it looks simple, I didn't 
+really want to go through yet another learning curve.</p>
+<pre>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.IO;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Threading;
+
+using Clifton.Core.ExtensionMethods;
+
+using FiddleDock.RouteHandlers;
+
+namespace FiddleDock
+{
+  public class LogEventArgs : EventArgs
+  {
+    public string Message { get; set; }
+  }
+
+  public class WebServer
+  {
+    public event EventHandler&lt;LogEventArgs&gt; Logger;
+
+    protected int maxSimultaneousConnections = 20;
+    protected int httpPort = 80;
+    protected Semaphore sem;
+    protected Dictionary&lt;Route, Func&lt;HttpListenerContext, Response&gt;&gt; routeHandlers;
+
+    public WebServer()
+    {
+      routeHandlers = new Dictionary&lt;Route, Func&lt;HttpListenerContext, Response&gt;&gt;();
+    }
+
+    public void AddRoute(string verb, string path, Func&lt;HttpListenerContext, Response&gt; handler)
+    {
+      routeHandlers.Add(new Route(verb, path), handler);
+    }
+
+    public void StartWebServer()
+    {
+      sem = new Semaphore(maxSimultaneousConnections, maxSimultaneousConnections);
+      List&lt;IPAddress&gt; localHostIPs = GetLocalHostIPs();
+      HttpListener listener = InitializeListener(localHostIPs);
+      Start(listener);
+    }
+
+    protected void Start(HttpListener listener)
+    {
+      listener.Start();
+      Thread th = new Thread(RunServer);
+      th.IsBackground = true;
+      th.Start(listener);
+    }
+
+    protected void RunServer(object l)
+    {
+      HttpListener listener = (HttpListener)l;
+      while (true)
+      {
+        try
+        {
+          sem.WaitOne();
+          StartConnectionListener(listener);
+        }
+        catch (Exception ex)
+        {
+          Logger.Fire(this, new LogEventArgs() { Message = ex.Message });
+        }
+      }
+    }
+
+    protected List&lt;IPAddress&gt; GetLocalHostIPs()
+    {
+      IPHostEntry host;
+      host = Dns.GetHostEntry(Dns.GetHostName());
+      List&lt;IPAddress&gt; ret = host.AddressList.Where(ip =&gt; ip.AddressFamily == AddressFamily.InterNetwork).ToList();
+
+      return ret;
+    }
+
+    protected HttpListener InitializeListener(List&lt;IPAddress&gt; localhostIPs)
+    {
+      HttpListener listener = new HttpListener();
+      Logger.Fire(this, new LogEventArgs() { Message = &quot;Listening on IP &quot; + &quot;http://locahost:&quot; + httpPort + &quot;/&quot; });
+      listener.Prefixes.Add(&quot;http://localhost:&quot; + httpPort + &quot;/&quot;);
+
+      // Listen to IP address as well.
+      localhostIPs.ForEach(ip =&gt;
+      {
+        Logger.Fire(this, new LogEventArgs() { Message = &quot;Listening on IP &quot; + &quot;http://&quot; + ip.ToString() + &quot;:&quot; + httpPort + &quot;/&quot; });
+        listener.Prefixes.Add(&quot;http://&quot; + ip.ToString() + &quot;:&quot; + httpPort + &quot;/&quot;);
+      });
+
+      return listener;
+    }
+
+    protected void StartConnectionListener(HttpListener listener)
+    {
+      // Wait for a connection. Return to caller while we wait.
+      HttpListenerContext context = listener.GetContext();
+
+      // Release the semaphore so that another listener can be immediately started up.
+      sem.Release();
+
+      Logger.Fire(this, new LogEventArgs() { Message = context.Request.Url.LocalPath });
+
+      string verb = context.Request.HttpMethod;
+      string path = context.Request.Url.LocalPath;
+      string requestData = new StreamReader(context.Request.InputStream, context.Request.ContentEncoding).ReadToEnd();
+
+      var routes = routeHandlers.Where(kvp =&gt; kvp.Key.IsMatch(verb, path));
+      int numRoutes = routes.Count();
+
+      if (numRoutes == 0)
+      {
+        Console.WriteLine(&quot;Route not found!&quot;);
+        Respond(context, &quot;&lt;p&gt;Route not found!&lt;/p&gt;&quot;, &quot;text/html&quot;);
+      }
+      else if (numRoutes &gt; 1)
+      {
+        Console.WriteLine(&quot;Multiple handlers match the given route!&quot;);
+        Respond(context, &quot;&lt;p&gt;Multiple handlers match the given route!&lt;/p&gt;&quot;, &quot;text/html&quot;);
+      }
+      else
+      {
+        try
+        {
+          Response response = routes.First().Value(context);
+          response.Execute(requestData);
+          Respond(context, response);
+        }
+        catch (Exception ex)
+        {
+          Console.WriteLine(ex.Message);
+          Respond(context, &quot;error&quot;, &quot;text/html&quot;);
+        }
+      }
+    }
+
+    protected void Respond(HttpListenerContext context, Response response)
+    {
+      context.Response.ContentType = response.ContentType;
+      var data = response.GetResponseData(context);
+      context.Response.ContentLength64 = data.Length;
+      context.Response.OutputStream.Write(data, 0, data.Length);
+    }
+
+    protected void Respond(HttpListenerContext context, string msg, string contentType)
+    {
+      byte[] utf8data = Encoding.UTF8.GetBytes(msg);
+      context.Response.ContentType = contentType;
+      context.Response.ContentEncoding = Encoding.UTF8;
+      context.Response.ContentLength64 = utf8data.Length;
+      context.Response.OutputStream.Write(utf8data, 0, utf8data.Length);
+    }
+  }
+}</pre>
+<p>Whew!</p>
+<h4>Initializing the Host Server </h4>
+<p>I implemented a rather brain dead routing mechanism, which you'll see here:</p>
+<pre>using System;
+using System.IO;
+
+using Clifton.Core.ExtensionMethods;
+
+using FiddleDock.RouteHandlers;
+
+namespace FiddleDock
+{
+  class Program
+  {
+    static void Main(string[] args)
+    {
+      WebServer ws = new WebServer();
+      ws.Logger += Logger;
+      InitializeRoutes(ws);
+      ws.StartWebServer();
+      Console.WriteLine(&quot;Web server ready.&quot;);
+      Console.ReadLine();
+    }
+
+    private static void Logger(object sender, LogEventArgs e)
+    {
+      Console.WriteLine(e.Message);
+    }
+
+    private static string GetPath()
+    {
+      return @&quot;c:\projects\FiddleDock\Website&quot;;
+    }
+
+    private static void InitializeRoutes(WebServer ws)
+    {
+      ws.AddRoute(&quot;GET&quot;, &quot;/&quot;, 
+         (context, _) =&gt; new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), &quot;index.html&quot;)), 
+         ContentType = &quot;text/html&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;/index&quot;, 
+         (context, _) =&gt; new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), &quot;index.html&quot;)), 
+         ContentType = &quot;text/html&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;/index.html&quot;, 
+         (context, _) =&gt; new StringResponse() { Data = File.ReadAllText(Path.Combine(GetPath(), &quot;index.html&quot;)), 
+         ContentType = &quot;text/html&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.js&quot;, 
+         (context, _) =&gt; new StringResponse() { Data = File.ReadAllText(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;text/javascript&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.css&quot;, 
+         (context, _) =&gt; new StringResponse() { Data = File.ReadAllText(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;text/css&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.jpg&quot;, 
+         (context, _) =&gt; new BinaryResponse() { ByteData = File.ReadAllBytes(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;image/jpg&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.png&quot;, 
+         (context, _) =&gt; new BinaryResponse() { ByteData = File.ReadAllBytes(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;image/png&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.bmp&quot;, 
+         (context, _) =&gt; new BinaryResponse() { ByteData = File.ReadAllBytes(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;image/bmp&quot; });
+      ws.AddRoute(&quot;GET&quot;, &quot;*.ico&quot;, 
+         (context, _) =&gt; new BinaryResponse() { ByteData = File.ReadAllBytes(
+            Path.Combine(GetPath(), context.Request.Url.LocalPath.WindowsDelimiters().Substring(1))), 
+         ContentType = &quot;image/x-icon&quot; });
+
+      ws.AddRoute(&quot;POST&quot;, &quot;/runOnHost&quot;, (context, _) =&gt; new RunOnHost() { ContentType = &quot;text/json&quot; });
+      ws.AddRoute(&quot;POST&quot;, &quot;/runOnDocker&quot;, (context, session) =&gt; new RunOnDocker(session) { ContentType = &quot;text/json&quot; });
+    }
+  }
+}</pre>
+<p><img border="0" src="talkToTheHand.jpg" width="250" height="202"></p>
+<p>The salient parts are the last two POST commands, which is the part we're 
+interested in.</p>
+<h4>The UI</h4>
+<p><img border="0" src="ui1.png" width="896" height="362"></p>
+<p>This is the UI we're building.&nbsp; [trump-mode]Very simple, it's really 
+great.[/trump-mode]</p>
+<p>We import our three dependencies in the header of index.html:</p>
+<pre>&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot; /&gt;
+&lt;title&gt;FiddleDock&lt;/title&gt;
+&lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;/css/bootstrap.min.css&quot; /&gt;
+&lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;/css/bootstrap-custom.css&quot; /&gt;
+&lt;link type=&quot;text/css&quot; rel=&quot;stylesheet&quot; href=&quot;/css/fiddledock.css&quot; /&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;/js/ace/ace.js&quot; charset=&quot;utf-8&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;/js/jquery-1.11.2.min.js&quot;&gt;&lt;/script&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;/js/bootstrap.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;</pre>
+<p>And the body takes advantage of Bootstrap's grid system:</p>
+<pre>&lt;body&gt;
+  &lt;div class=&quot;container-fluid&quot; style=&quot;height:90vh&quot;&gt;
+    &lt;div class=&quot;row top-margin-20&quot; style=&quot;height:45%&quot;&gt;
+      &lt;div class=&quot;col-xs-1 col-sm-1 col-md-1 col-lg-1&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;col-xs-8 col-sm-8 col-md-8 col-lg-8&quot; style=&quot;height:100%&quot;&gt;
+        &lt;div class=&quot;bottom-margin-10&quot; id=&quot;editor&quot; style=&quot;width:100%; height:100%&quot;&gt;&lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;col-xs-3 col-sm-3 col-md-3 col-lg-3&quot;&gt;
+        &lt;div&gt;
+          &lt;button id=&quot;runOnDocker&quot;&gt;Run on Docker&lt;/button&gt;
+          &lt;button id=&quot;runOnHost&quot;&gt;Run on Host&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;top-margin-10&quot;&gt;
+           Select Instance:
+           &lt;select id=&quot;instanceList&quot;&gt;
+             &lt;option&gt;1&lt;/option&gt;
+           &lt;/select&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;top-margin-10&quot;&gt;
+          &lt;button id=&quot;deleteInstance&quot;&gt;Delete Instance&lt;/button&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;top-margin-10&quot;&gt;
+          &lt;button id=&quot;createInstance&quot;&gt;Create New Instance&lt;/button&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;row&quot; style=&quot;padding-top:10px&quot;&gt;
+      &lt;div class=&quot;col-xs-1 col-sm-1 col-md-1 col-lg-1&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;col-xs-8 col-sm-8 col-md-8 col-lg-8&quot;&gt;
+        &lt;span style=&quot;color:black; font-family:Tahoma; font-size:1em; vertical-align:bottom;&quot;&gt;Output:&lt;/span&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;div class=&quot;row&quot; style=&quot;height:45%&quot;&gt;
+      &lt;div class=&quot;col-xs-1 col-sm-1 col-md-1 col-lg-1&quot;&gt;&lt;/div&gt;
+      &lt;div class=&quot;col-xs-8 col-sm-8 col-md-8 col-lg-8&quot; style=&quot;height:100%&quot;&gt;
+        &lt;textarea id=&quot;output&quot; style=&quot;width:100%; border:1px solid black; height:100%; padding-left:5px; padding-right:5px&quot;&gt;&lt;/textarea&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/body&gt;</pre>
+<p>OK, there's embedded styles that should be in the fiddledock.css file.&nbsp; 
+Do I need to bring Yoda out again?</p>
+<h4>The Javascript</h4>
+<p>I like clean Javascript (if I have to write in a dirty language, I tend to 
+try and make the code extra neat):</p>
+<pre>$(document).ready(function () {
+  editor = ace.edit(&quot;editor&quot;);
+  editor.setTheme(&quot;ace/theme/twilight&quot;);
+  editor.getSession().setMode(&quot;ace/mode/python&quot;);
+  editor.focus();
+
+  $(&quot;#runOnDocker&quot;).on(&quot;click&quot;, runCodeOnDocker);
+  $(&quot;#runOnHost&quot;).on(&quot;click&quot;, runCodeOnHost);
+  $(&quot;#createInstance&quot;).on(&quot;click&quot;, createInstance);
+  $(&quot;#deleteInstance&quot;).on(&quot;click&quot;, deleteInstance);
+  $(&quot;#instanceList&quot;).on(&quot;change&quot;, selectInstance);
+});
+
+function runCodeOnDocker() {
+  var code = editor.getValue();
+  postJson(&quot;/runOnDocker&quot;, { &quot;code&quot;: btoa(code) }, runResponse, ajaxError)
+}
+
+function runCodeOnHost() {
+  var code = editor.getValue();
+  postJson(&quot;/runOnHost&quot;, { &quot;code&quot;: btoa(code) }, runResponse, ajaxError)
+}
+
+function runResponse(resp) {
+  $(&quot;#output&quot;).html(atob(resp[&quot;resp&quot;]))
+}
+
+function createInstance() {
+}
+
+function selectInstance() {
+}
+
+function deleteInstance() {
+  if (moreThanOneInstance()) {
+  }
+  else {
+  alert(&quot;At least one instance must exist.&quot;);
+  }
+}
+
+function moreThanOneInstance() {
+  return $(&quot;#instanceList option&quot;).size() &gt; 1
+}
+
+function postJson(url, data, onSuccess, onFail) {
+  $.post(url, JSON.stringify(data),
+    function (data) {
+      onSuccess(data);
+    }
+    ).fail(function (data) {
+      onFail(data)
+    })
+}
+
+function ajaxError(data) {
+  alert(data);
+}</pre>
+<h4>Launching a Process</h4>
+<p>Starting with the low level details, this is what we need to do to launch a 
+process that executes the &quot;docker run...&quot; command.&nbsp; Note that we have to 
+explicitly set the environment variables (hmm, what was I saying before about 
+not liking hardcoded strings???):</p>
+<pre>using System;
+using System.Diagnostics;
+
+using Clifton.Core.ExtensionMethods;
+
+namespace FiddleDock
+{
+  public static class Runner
+  {
+    public static Process LaunchProcess(string processName, string arguments, Action&lt;string&gt; onOutput, Action&lt;string&gt; onError = null)
+    {
+      Process p = new Process();
+      p.StartInfo.UseShellExecute = false;
+      p.StartInfo.RedirectStandardOutput = true;
+      p.StartInfo.RedirectStandardError = true;
+      p.StartInfo.RedirectStandardInput = true;
+      p.StartInfo.FileName = processName;
+      p.StartInfo.Arguments = arguments;
+      p.StartInfo.CreateNoWindow = true;
+
+      string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name.RightOf(&quot;\\&quot;);
+
+      p.StartInfo.EnvironmentVariables[&quot;DOCKER_CERT_PATH&quot;] = @&quot;c:\users\&quot; + username + @&quot;\.docker\machine\machines\default&quot;;
+      p.StartInfo.EnvironmentVariables[&quot;DOCKER_HOST&quot;] = &quot;tcp://192.168.99.100:2376&quot;;
+      p.StartInfo.EnvironmentVariables[&quot;DOCKER_MACHINE_NAME&quot;] = &quot;default&quot;;
+      p.StartInfo.EnvironmentVariables[&quot;DOCKER_TLS_VERIFY&quot;] = &quot;1&quot;;
+      
+      p.OutputDataReceived += (sndr, args) =&gt; { if (args.Data != null) onOutput(args.Data); };
+
+      if (onError != null)
+      {
+        p.ErrorDataReceived += (sndr, args) =&gt; { if (args.Data != null) onError(args.Data); };
+      }
+
+      p.Start();
+
+      // Interestingly, this has to be called after Start().
+      p.BeginOutputReadLine();
+      p.BeginErrorReadLine();
+
+      return p;
+    }
+  }
+}</pre>
+<p>This is pretty standard configuration stuff using .NET's <code>Process</code> 
+class but you may not often have to redirect STDOUT and STDERR and set up a 
+listener.</p>
+<h4>Something Simple -- Running the Script on the Host</h4>
+<p>For comparison, you can run the script on the Windows host machine 
+(obviously, you wouldn't expose this in the wild wild web):</p>
+<pre>using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Net;
+using System.Text;
+using System.Threading;
+
+using Newtonsoft.Json;
+
+namespace FiddleDock.RouteHandlers
+{
+  public class RunOnHost : Response
+  {
+    protected List&lt;string&gt; stdout = new List&lt;string&gt;();
+
+    public override void Execute(string requestData)
+    {
+      PythonCode pcode = JsonConvert.DeserializeObject&lt;PythonCode&gt;(requestData);
+      string code = Encoding.ASCII.GetString(Convert.FromBase64String(pcode.Code));
+      string fnTemp = Path.GetTempFileName();
+      File.WriteAllText(fnTemp, code);
+      var process = Runner.LaunchProcess(&quot;python&quot;, &quot;-u &quot; + fnTemp, (s) =&gt; stdout.Add(s), (err) =&gt; stdout.Add(err));
+      var startTime = DateTime.Now;
+
+      while (!process.HasExited &amp;&amp; (DateTime.Now - startTime).TotalMilliseconds &lt; Constants.MAX_RUN_TIME_MS)
+      {
+        Thread.Sleep(0);
+      }
+
+      if (!process.HasExited)
+      {
+        process.Kill();
+      }
+
+      File.Delete(fnTemp);
+    }
+
+    public override byte[] GetResponseData(HttpListenerContext context)
+    {
+      string resp = Convert.ToBase64String(Encoding.ASCII.GetBytes(String.Join(&quot;\r\n&quot;, stdout)));
+      return Encoding.UTF8.GetBytes(&quot;{\&quot;status\&quot;:\&quot;ok\&quot;, \&quot;resp\&quot;:\&quot;&quot; + resp + &quot;\&quot;}&quot;);
+    }
+  }
+}</pre>
+<p>A few things to note:</p>
+<ul>
+	<li>The script code is sent from the Javascript client in base64, so we have 
+	to decode it.</li>
+	<li>Again we use the &quot;-u&quot; parameter so that the subsystem doesn't buffer 
+	Python's STDOUT and STDERR</li>
+	<li>We wait a pre-determined about before killing the process (ooh, look, a 
+	constant.)</li>
+	<li>The response is sent as a base64 encoded string back to the client.</li>
+</ul>
+<p>This executes nice and fast and we get what we expect:</p>
+<p><img border="0" src="ui2.png" width="935" height="373"></p>
+<p>All that happens behind the scenes is that we launch <code>python -u [temp 
+filename]</code> on our host and capture the output.</p>
+<h4>Less Simple -- Running the Script on the Host</h4>
+<p>Here we're going to pay attention to a few things, such as the session, 
+determined by the request endpoint IP, because as a &quot;real&quot; web app, we're going 
+to need to track the containers that we've created for a session and re-use them 
+in the session once they've been created.&nbsp; We also need to create each 
+container with a unique port to the Python HTTP server, so that we can 
+communicate to a specific container!&nbsp; Interestingly enough, the available 
+ports is <i>global</i>, not session specific.</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>
 <p>&nbsp;</p>

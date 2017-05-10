@@ -1,8 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-using System.Collections.Generic;
-using System.Linq;
+using Clifton.Core.ExtensionMethods;
 
 namespace FiddleDock
 {
@@ -19,7 +18,9 @@ namespace FiddleDock
 			p.StartInfo.Arguments = arguments;
 			p.StartInfo.CreateNoWindow = true;
 
-			p.StartInfo.EnvironmentVariables["DOCKER_CERT_PATH"] = @"c:\users\Marc\.docker\machine\machines\default";
+			string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name.RightOf("\\");
+
+			p.StartInfo.EnvironmentVariables["DOCKER_CERT_PATH"] = @"c:\users\" + username + @"\.docker\machine\machines\default";
 			p.StartInfo.EnvironmentVariables["DOCKER_HOST"] = "tcp://192.168.99.100:2376";
 			p.StartInfo.EnvironmentVariables["DOCKER_MACHINE_NAME"] = "default";
 			p.StartInfo.EnvironmentVariables["DOCKER_TLS_VERIFY"] = "1";

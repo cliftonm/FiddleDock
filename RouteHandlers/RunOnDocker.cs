@@ -12,6 +12,13 @@ namespace FiddleDock.RouteHandlers
 {
 	public class RunOnDocker : Response
 	{
+		protected Session session;
+
+		public RunOnDocker(Session session)
+		{
+			this.session = session;
+		}
+
 		protected List<string> stdout = new List<string>();
 
 		public override void Execute(string requestData)
